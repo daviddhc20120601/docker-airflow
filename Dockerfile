@@ -28,6 +28,12 @@ ENV LC_MESSAGES en_US.UTF-8
 # Disable noisy "Handling signal" log messages:
 # ENV GUNICORN_CMD_ARGS --log-level WARNING
 
+# RUN apt-get update
+
+COPY ./sources.list /etc/apt/      
+COPY ./aliyun.gpg /etc/apt/
+
+
 RUN set -ex \
     && buildDeps=' \
         freetds-dev \
@@ -38,9 +44,10 @@ RUN set -ex \
         libpq-dev \
         git \
     ' \
-    && apt-get update -yqq \
-    && apt-get upgrade -yqq \
-    && apt-get install -yqq --no-install-recommends \
+    && apt-get --allow-unauthenticated update -yqq \
+    && apt-get --allow-unauthenticated upgrade -yqq \
+    && apt-get --allow-unauthenticated install -yqq curl \
+    && apt-get --allow-unauthenticated install -yqq --no-install-recommends \
         $buildDeps \
         freetds-bin \
         build-essential \
@@ -49,18 +56,20 @@ RUN set -ex \
         curl \
         rsync \
         netcat \
+        ssh \
         locales \
     && sed -i 's/^# en_US.UTF-8 UTF-8$/en_US.UTF-8 UTF-8/g' /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
     && useradd -ms /bin/bash -d ${AIRFLOW_USER_HOME} airflow \
-    && pip install -U pip setuptools wheel \
-    && pip install pytz \
-    && pip install pyOpenSSL \
-    && pip install ndg-httpsclient \
-    && pip install pyasn1 \
-    && pip install apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
-    && pip install 'redis==3.2' \
+    && pip install -U -i https://mirrors.aliyun.com/pypi/simple/ setuptools wheel \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ pytz \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ pyOpenSSL \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ ndg-httpsclient \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ pyasn1 \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ apache-airflow[crypto,celery,postgres,hive,jdbc,mysql,ssh${AIRFLOW_DEPS:+,}${AIRFLOW_DEPS}]==${AIRFLOW_VERSION} \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ 'redis==3.2' \
+    && pip install -i https://mirrors.aliyun.com/pypi/simple/ paramiko \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
     && apt-get purge --auto-remove -yqq $buildDeps \
     && apt-get autoremove -yqq --purge \
